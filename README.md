@@ -1,3 +1,3 @@
 # JSE for Eigenvectors
 
-description
+One factor model PCA vs JSE
