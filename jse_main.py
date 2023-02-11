@@ -39,31 +39,44 @@ import jse_support as sjse
 from numpy import linalg as la
 
 
-def ComputePCA_GPS(S, Srank, Sdim):
+def ComputePCA_GPS(S, Srank, Sdim, flag: int):
     #
     # function to compute PCA and GPS estimators of b given sample cov. matrix S
     # and rank Srank, which will equal the number of periods.
     # Sdim = size of S = num of assets.
     # There are Srank nonzero evalues, Srank -1 of them below the leading evalue
     #
-    evalues, evectors = la.eigh(S)  # S a sym matrix of size MaxAssets, rank Srank
-    h = evectors[:, Sdim - 1]  # normalized evector corr. to largest evalue of S
-    sp2 = evalues[Sdim - 1]  # leading evalue of S
-    lp2 = (np.sum(evalues ) -sp2 ) /(Srank -1)  # average of the lesser nonzero evalues
-    psi2 = (sp2 - lp2) / sp2  # this is the psi^2 term from the GPS paper
-    all_ones = np.ones(Sdim)
-    q = all_ones / la.norm(all_ones)  # north pole, unit vector
+    if flag == 0:
+        evalues, evectors = la.eigh(S)  # S a sym matrix of size MaxAssets, rank Srank
+        h = evectors[:, Sdim - 1]  # normalized evector corr. to largest evalue of S
+        sp2 = evalues[Sdim - 1]  # leading evalue of S, 
+        lp2 = (np.sum(evalues ) -sp2 ) /(Srank -1)  # average of the lesser nonzero evalues
+        psi2 = (sp2 - lp2) / sp2  # this is the psi^2 term from the GPS paper
+        all_ones = np.ones(Sdim)
+        q = all_ones / la.norm(all_ones)  # north pole, unit vector
 
-    hq = np.dot(h, q)  # inner product of h and q
-    if hq < 0:
-        h = -h  # choose e-vector h with positive mean
-        hq = -hq
-    elif hq == 0:
-        print("error: h is orthogonal to q")
+        hq = np.dot(h, q)  # inner product of h and q
+        if hq < 0:
+            h = -h  # choose e-vector h with positive mean
+            hq = -hq
+        elif hq == 0:
+            print("error: h is orthogonal to q")
 
-    tau = (1 - psi2) * hq / (psi2 - hq * hq)  # gps data driven shrinkage parameter
-    h_shr = h + tau * q  # h_GPS before normalizing
-    return h, (1 / la.norm(h_shr)) * h_shr, sp2, lp2  # h and h_GPS, normalized, and sp2, lp2
+        tau = (1 - psi2) * hq / (psi2 - hq * hq)  # gps data driven shrinkage parameter
+        h_shr = h + tau * q  # h_GPS before normalizing
+        return h, (1 / la.norm(h_shr)) * h_shr, sp2, lp2  # h and h_GPS, normalized, and sp2, lp2
+    else: 
+        evalues, evectors = la.eigh(S)
+        h = [] #is a list containing all our eigenvectors were h[0] is the first and so on..
+        sp2 = [] #is a list contatining the respective eigenvalues for the eigenvectors
+        for i in range(1,5):
+            h.append(evectors[:, -i])
+            sp2.append(evalues[-i])
+        
+        
+
+
+   
 
 
 ###  end def
