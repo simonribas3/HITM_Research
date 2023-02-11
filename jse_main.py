@@ -1,6 +1,6 @@
 
 # jse-main.py
-# JSE four factor
+# JSE four factor model
 
 """
 Created on Mon Dec 6, 2021
