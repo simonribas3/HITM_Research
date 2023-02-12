@@ -41,8 +41,8 @@ from numpy import linalg as la
 def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int):
 
     evalues, evectors = la.eigh(S)
-    h = [] #all our eigenvectors \beta, F1, F2, F3
-    sp2 = [] #corresponding eigenvalues
+    h = [] # all our eigenvectors \beta, F1, F2, F3
+    sp2 = [] # corresponding eigenvalues
 
     for i in range(1, 5): 
         h.append(evectors[:, -i])
@@ -60,40 +60,60 @@ def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int):
     elif hq == 0:
         print("error: h is orthogonal to q")
 
-    tau = (1 - psi2) * hq / (psi2 - hq * hq)  # gps data driven shrinkage parameter
+    tau = (1 - psi2) * hq / (psi2 - hq * hq)  # equation (21) from the dispersion bias
     h_shr = h[0] + tau * q  # h_GPS before normalizing
 
     h_shr_norm = (1/la.norm(h_shr))*h_shr #h_GPS normalized
-    # up to here we have computed a list of our first four principal components and their respective eigenvalues
+
+    for i in range(1,4):  # now lets normalize the rest of the principal componenets
+        h[i] = (1/la.norm(h[i]))*h[i]
+
+    # up to here we have computed a list of our first four principal components normalized except for PCA, and their respective eigenvalues
     # h_shr_norm which is our corrected beta vector
+
     # now depending on the flag we will return two different things
 
     if FactorFlag == 0: 
-        return h[0], h_shr_norm, sp2[0], lp2 #PCA principal comp, JSE prinpcal comp, leading eigenval, avg of rest eigenvals
+        return h[0], h_shr_norm, sp2[0], lp2 # PCA principal comp, JSE prinpcal comp, leading eigenval, avg of rest eigenvals
     elif FactorFlag == 1: 
-        return h, h_shr_norm, sp2 #Principal Components list, JSE princiapl comp, Corresponding eigenvalues. 
+        return h, h_shr_norm, sp2 # Principal Components list, JSE princiapl comp, Corresponding eigenvalues. 
     else: 
         print('please correct flag')
 
 ###  end def
 
 
-def ComputeMRPortfolio(p, p_eta, delta2, h):
-    # outputs w = argmin w^T Sigma w, subj to w^T e = 1.
-    # Here Sigma is the real or estimated covariance matrix, depending on inputs
-    # p = dimension of Sigma = number of assets
-    # p_eta, delta2, h determine Sigma = p_eta hh^T + delta2 I
-    # Notation follows MAPS, section 3
+def ComputeMRPortfolio(
+    p, p_eta, delta2, h: list, sp2: list, FactorFlag: int
+    ) -> list: # computes weights for one factor covariance matrix:
+    # our estimate covariance matrix will be invertible so the weights will be equal to \Sigma^-1[oooooo1]
 
     all_ones = np.ones(p)
-    q = all_ones / la.norm(all_ones)  # north pole, unit vector
-    hq = np.dot(h, q)
 
-    k2 = delta2 / p_eta
-    rho = (1 + k2) / hq
-    w = ((rho * q) - h) / ((rho - hq) * np.sqrt(p))
-    return w
+    if FactorFlag == 0:
+        # outputs w = argmin w^T Sigma w, subj to w^T e = 1.
+        # Here Sigma is the real or estimated covariance matrix, depending on inputs
+        # p = dimension of Sigma = number of assets
+        # p_eta, delta2, h determine Sigma = p_eta hh^T + delta2 I
+        # Notation follows MAPS, section 3
 
+        q = all_ones / la.norm(all_ones)  # north pole, unit vector
+        hq = np.dot(h[0], q) # hq is just the h vector in the direction of the north pole
+
+        k2 = delta2 / p_eta
+        rho = (1 + k2) / hq
+        w = ((rho * q) - h[0]) / ((rho - hq) * np.sqrt(p))
+        return w
+    elif FactorFlag == 1:
+        I = np.identity(len(h[0])) # sets up identity matrix
+        d2 =               # need to regress on factors to get this
+        omega = sp2*I - d2 # sets up factor covariance matrix
+        sigma = np.dot(np.dot(h.T, omega), h) + d2 * I
+        w_num = np.dot(np.linalg.inv(sigma),all_ones)
+        w = w_num/np.dot(all_ones.T,w_num)
+
+        return w
+        
 
 ### end def
 
