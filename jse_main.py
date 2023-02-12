@@ -84,10 +84,10 @@ def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int):
 
 
 def ComputeMRPortfolio(
-    p, p_eta, delta2, h: list, sp2: list, FactorFlag: int
+    p, p_eta, delta2, h: list, sp2: list, FactorFlag: int, **kwargs
     ) -> list: # computes weights for one factor covariance matrix:
-    # our estimate covariance matrix will be invertible so the weights will be equal to \Sigma^-1[oooooo1]
-
+    
+    z = kwargs['z'] #should be a matrix of specific returns
     all_ones = np.ones(p)
 
     if FactorFlag == 0:
