@@ -35,11 +35,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import jse_support as sjse
+import scipy
 from numpy import linalg as la
 
-
-def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int):
-
+def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int, *args):
     evalues, evectors = la.eigh(S)
     h = [] # all our eigenvectors \beta, F1, F2, F3
     sp2 = [] # corresponding eigenvalues
@@ -82,6 +81,13 @@ def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int):
 
 ###  end def
 
+#finding z
+
+# define some simon = R - \hat{R}
+# \hat{R} = B*\hat{\phi}
+# \hat{phi} = (k,1) np.zero
+# scipy.optimize.minimize(simon, phi))
+# solve for z = n,t of epsilons. 
 
 def ComputeMRPortfolio(
     p, p_eta, delta2, h: list, sp2: list, FactorFlag: int, **kwargs
