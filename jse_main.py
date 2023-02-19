@@ -35,7 +35,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import jse_support as sjse
-import scipy
+import scipy 
+from scipy.optimize import minimize
 from numpy import linalg as la
 
 def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int, *args):
@@ -48,7 +49,7 @@ def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int, *args):
         sp2.append(evalues[-i])
 
     lp2 = (np.sum(evalues ) -sp2[0] ) /(Srank -1)
-    psi2 = (sp2[0] - lp2[0]) / sp2[0]  # this is the psi^2 term from the GPS paper
+    psi2 = (sp2[0] - lp2) / sp2[0]  # this is the psi^2 term from the GPS paper
     all_ones = np.ones(Sdim)
     q = all_ones / la.norm(all_ones) #north pole, unit vector
 
@@ -81,13 +82,6 @@ def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int, *args):
 
 ###  end def
 
-#finding z
-
-# define some simon = R - \hat{R}
-# \hat{R} = B*\hat{\phi}
-# \hat{phi} = (k,1) np.zero
-# scipy.optimize.minimize(simon, phi))
-# solve for z = n,t of epsilons. 
 
 def ComputeMRPortfolio(
     p, p_eta, delta2, h: list, sp2: list, FactorFlag: int, **kwargs
@@ -119,7 +113,8 @@ def ComputeMRPortfolio(
         w = w_num/np.dot(all_ones.T,w_num)
 
         return w
-        
+
+
 
 ### end def
 
@@ -145,6 +140,48 @@ Factor4StDev = .08 / np.sqrt(252)
 
 FactorFlag = 1  # 0 for one factor; 1 for four factors
 NormalFlag = 2  # 0 for Normal specific returns, 1 for double exponential, 2 for student's t
+
+##########################################################################
+################## CREATE Z MATRIX OF RESIDUAL RETURNS ###################
+##########################################################################
+
+def Compute_Zmatrix_cost(
+    psi:list, Bstar: list, Returns: list, 
+    ) -> float:
+    error = Returns - np.matmul(Bstar, psi)
+    returnVALUE = np.linalg.norm(error, 2)**2
+    return returnVALUE
+
+def Compute_Zmatrix(
+    Bstar: list, Returns: list, **kwargs
+    ) -> list:
+    typeOfCOV = kwargs
+    numFactors = 4
+    initialGuess = np.random.randn(numFactors)  # The initial guess for scipy optimizer
+    Z = np.zeros((MaxAssets, NumPeriods, NumExperiments))  # The Residuals matrix
+
+    for t in range(NumExperiments): # Looping through all the experiments
+        R_exper = Returns[:, :, t] 
+        S = np.matmul(R_exper, R_exper.transpose()) / NumPeriods  # Create the Sample covariance matrix for experiment i
+        h, h_JSE, sp2 = ComputePCA_GPS(S, NumPeriods, len(S), 1)
+        
+        if 'JSE' in kwargs.keys():
+        Bstar = np.array(h).T  # This is the BSTAR in better betas, factor exposures
+        Bstar_JSE = np.array(h)
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
 
 # create simulationGPS object, which
 # creates beta, factor, specific, total returns  x numExperiments

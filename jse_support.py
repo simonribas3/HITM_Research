@@ -128,6 +128,7 @@ class SimulationJSE:
                 Rtot[:, :, e] = R[:, :]
 
         return Rtot
+            
 
     def GetReturnsMatrix(self):
         return self.returnsMatrix
