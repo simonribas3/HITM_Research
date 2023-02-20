@@ -146,40 +146,59 @@ NormalFlag = 2  # 0 for Normal specific returns, 1 for double exponential, 2 for
 ##########################################################################
 
 def Compute_Zmatrix_cost(
-    psi:list, Bstar: list, Returns: list, 
+    x, Bstar, Returns, 
     ) -> float:
-    error = Returns - np.matmul(Bstar, psi)
+    error = Returns - np.matmul(Bstar, x)
     returnVALUE = np.linalg.norm(error, 2)**2
     return returnVALUE
 
-def Compute_Zmatrix(
-    Bstar: list, Returns: list, **kwargs
+def getJSE_BSTAR(
+    h, h_JSE
     ) -> list:
-    typeOfCOV = kwargs
+    H = h
+    H[0] = h_JSE
+    return H
+
+
+def Compute_Zmatrix( # Function returns the JSE and PCA residuals matrix (keep at low experiments for quick tests)
+    Returns: list
+    ) -> list:
+
     numFactors = 4
     initialGuess = np.random.randn(numFactors)  # The initial guess for scipy optimizer
     Z = np.zeros((MaxAssets, NumPeriods, NumExperiments))  # The Residuals matrix
+    Z_jse = np.zeros((MaxAssets, NumPeriods, NumExperiments))  # The Residuals matrix for JSE
 
     for t in range(NumExperiments): # Looping through all the experiments
         R_exper = Returns[:, :, t] 
         S = np.matmul(R_exper, R_exper.transpose()) / NumPeriods  # Create the Sample covariance matrix for experiment i
         h, h_JSE, sp2 = ComputePCA_GPS(S, NumPeriods, len(S), 1)
-        
-        if 'JSE' in kwargs.keys():
+
         Bstar = np.array(h).T  # This is the BSTAR in better betas, factor exposures
-        Bstar_JSE = np.array(h)
+        Bstar_JSE = np.array(getJSE_BSTAR(h,h_JSE)).T  # This is the BSTAR for JSE
 
-    
+        psi_exp_i = np.zeros((4, NumPeriods))
+        psi_exp_i_jse = np.zeros((4,NumPeriods))
 
+        for j in range(NumPeriods):
+            R_day = R_exper[:, j]
 
+            psi_day = minimize(Compute_Zmatrix_cost,initialGuess,method = 'nelder-mead',       #optimizer PCA
+            args =(Bstar,np.reshape(R_day, (MaxAssets,))),
+            options = {'maxiter':10000, 'maxfev':10000, 'xatol': 1e-8, 'disp': True})
 
+            psi_day_jse = minimize(Compute_Zmatrix_cost,initialGuess,method = 'nelder-mead',    #optimizer JSE
+            args =(Bstar_JSE,np.reshape(R_day, (MaxAssets,))),
+            options = {'maxiter':10000, 'maxfev':10000, 'xatol': 1e-8, 'disp': True})
 
+            
+            psi_exp_i[:, j] = psi_day.x
+            psi_exp_i_jse[:, j] = psi_day_jse.x
 
+        Z[:, :, t] = R_exper - np.matmul(Bstar, psi_exp_i)   # Residuals for regular PCA
+        Z_jse[:, :, t] = R_exper - np.matmul(Bstar_JSE, psi_exp_i_jse)  # Residuals for JSE
 
-
-
-
-
+    return Z, Z_jse
 
 
 
