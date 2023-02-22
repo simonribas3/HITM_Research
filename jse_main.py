@@ -6,6 +6,8 @@
 Created on Mon Dec 6, 2021
 Updated August 9, 2022
 @author: Alec Kercheval
+
+Four Factor code implementation: Simon Ribas
 """
 
 '''
@@ -39,7 +41,7 @@ import scipy
 from scipy.optimize import minimize
 from numpy import linalg as la
 
-def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int, *args):
+def ComputePCA_GPS(S, Srank, Sdim):
     evalues, evectors = la.eigh(S)
     h = [] # all our eigenvectors \beta, F1, F2, F3
     sp2 = [] # corresponding eigenvalues
@@ -84,10 +86,10 @@ def ComputePCA_GPS(S, Srank, Sdim, FactorFlag: int, *args):
 
 
 def ComputeMRPortfolio(
-    p, p_eta, delta2, h: list, sp2: list, FactorFlag: int, **kwargs
+    p, p_eta, delta2, h: list, sp2: list, **kwargs
     ) -> list: # computes weights for one factor covariance matrix:
     
-    z = kwargs['z'] #should be a matrix of specific returns
+
     all_ones = np.ones(p)
 
     if FactorFlag == 0:
@@ -126,7 +128,7 @@ def ComputeMRPortfolio(
 
 DayString = "d220809"
 MaxAssets = 500  # default 500
-NumExperiments = 400  # default 400
+NumExperiments = 5  # default 400
 NumPeriods = 252  # default 252
 
 BetaMean = 1.0
@@ -177,7 +179,7 @@ def Compute_Zmatrix( # Function returns the JSE and PCA residuals matrix (keep a
         Bstar = np.array(h).T  # This is the BSTAR in better betas, factor exposures
         Bstar_JSE = np.array(getJSE_BSTAR(h,h_JSE)).T  # This is the BSTAR for JSE
 
-        psi_exp_i = np.zeros((4, NumPeriods))
+        psi_exp_i = np.zeros((4, NumPeriods)) 
         psi_exp_i_jse = np.zeros((4,NumPeriods))
 
         for j in range(NumPeriods):
@@ -213,6 +215,9 @@ sim = sjse.SimulationJSE(rng, NormalFlag, MaxAssets, NumExperiments, NumPeriods,
 # get returns matrix (assets x periods x numExperiments) from sim object
 Rtot = sim.GetReturnsMatrix() #if our factor flag is now 1, we produce 4 factor returns
 
+# get the residuals matrix (assets x periods x numeExperiments) 
+if FactorFlag == 1: 
+    Z, Z_jse = Compute_Zmatrix(Rtot)
 # get true betas -- one beta for all experiments
 betaVector = sim.GetBetaVector()
 
@@ -246,28 +251,49 @@ for exper in range(NumExperiments):
     Y = Rtot[:, :, exper]  # matrix of returns for trial exper
     S = np.matmul(Y, Y.transpose()) / NumPeriods  # sample covariance matrix for trial exper
     b = betaVector / la.norm(betaVector)  # normalized beta
-
-    h, h_GPS, sp2, lp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
-
+     
+    
     # tracking error notation and formulas from MAPS paper, section 3
 
-    p_eta_true = np.dot(betaVector, betaVector) * (Factor1StDev) ** 2
-    p_eta_obs = sp2 - lp2
-    delta2_true = (SpecificStDev) ** 2
-    delta2_obs = (NumPeriods / MaxAssets) * lp2
 
-    delta2_raw = ((NumPeriods - 1) / (MaxAssets - 1)) * lp2
-    p_eta_raw = sp2 - delta2_raw
+    ### we use these to compute the weights of the portfolio ###
+
+    if FactorFlag == 0:
+        h, h_GPS, sp2, lp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
+        p_eta_true = np.dot(betaVector, betaVector) * (Factor1StDev) ** 2
+        p_eta_obs = sp2 - lp2
+        delta2_true = (SpecificStDev) ** 2
+        delta2_obs = (NumPeriods / MaxAssets) * lp2
+
+        delta2_raw = ((NumPeriods - 1) / (MaxAssets - 1)) * lp2 
+        p_eta_raw = sp2 - delta2_raw
+
+        w_Epca = ComputeMRPortfolio(MaxAssets, p_eta_obs, delta2_obs, h)  # estimated evalues and PCA evector
+        w_Ejse = ComputeMRPortfolio(MaxAssets, p_eta_obs, delta2_obs, h_GPS)  # estimated evalues and GPS evector
+
+        w_raw = ComputeMRPortfolio(MaxAssets, p_eta_raw, delta2_raw, h)  # PCA evalue and evector
+
+        w_TT = ComputeMRPortfolio(MaxAssets, p_eta_true, delta2_true, b)  # true optimal portfolio
+    
+    elif FactorFlag == 1: 
+        h, h_GPS, sp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
+        z = Z[:, :, exper]
+        z = np.sum(z**2, axis = 1) # square and sum across time
+        d2n = (1/NumPeriods)*z # this is the calculation for equation (21) in better betas
+        d2n_avg = np.sum(d2n)/len(d2n) # (22) bb
+        sigma2 = sp2[0] - d2n_avg # (23) bb
+
+        d2_mp = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
+        sigma2_mp = sp2[0] - d2_mp*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
+
+
+
+        
     # see the JS# paper for the raw PCA estimator
 
     #  four portfolios
 
-    w_Epca = ComputeMRPortfolio(MaxAssets, p_eta_obs, delta2_obs, h)  # estimated evalues and PCA evector
-    w_Ejse = ComputeMRPortfolio(MaxAssets, p_eta_obs, delta2_obs, h_GPS)  # estimated evalues and GPS evector
-
-    w_raw = ComputeMRPortfolio(MaxAssets, p_eta_raw, delta2_raw, h)  # PCA evalue and evector
-
-    w_TT = ComputeMRPortfolio(MaxAssets, p_eta_true, delta2_true, b)  # true optimal portfolio
+    
 
     # tracking error, daily
 
