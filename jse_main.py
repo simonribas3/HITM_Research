@@ -92,6 +92,13 @@ def ComputeMRPortfolio(
 
     all_ones = np.ones(p)
 
+    # Here we will first create the vector with delta_i's
+    # here
+    z2 = z**2 # square the matrix
+    z = np.sum(z2, axis=1) # sum of the squares
+    z = z/len(z2[0]) # divide by the total amount of days, since z2 is still n,t matrix just grab z[0] and divide by this length
+    
+
     if FactorFlag == 0:
         # outputs w = argmin w^T Sigma w, subj to w^T e = 1.
         # Here Sigma is the real or estimated covariance matrix, depending on inputs
@@ -108,7 +115,7 @@ def ComputeMRPortfolio(
         return w
     elif FactorFlag == 1:
         I = np.identity(len(h[0])) # sets up identity matrix
-        d2 =               # need to regress on factors to get this
+        d2 = z          # need to regress on factors to get this
         omega = sp2*I - d2 # sets up factor covariance matrix
         sigma = np.dot(np.dot(h.T, omega), h) + d2 * I
         w_num = np.dot(np.linalg.inv(sigma),all_ones)
@@ -391,4 +398,4 @@ plt.xlabel("estimator")
 FigVar.savefig(DayString + "trueVarRatio_boxplot_E" + str(NumExperiments) + "T" + str(NumPeriods) + "f" + str(
         NormalFlag) + ".pdf", format="pdf", bbox_inches="tight")
 
-print("hello")
+print("just testing lol")
