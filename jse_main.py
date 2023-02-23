@@ -118,7 +118,7 @@ def ComputeMRPortfolio(
         hq = np.dot(h, q) # hq is just the h vector in the direction of the north pole
         k2 = delta2 / p_eta
         rho = (1 + k2) / hq
-        w = ((rho * q) - h) / ((rho - hq) * np.sqrt(p))
+        w = ((rho * q) - h) / ((rho - hq) * np.sqrt(MaxAssets))
     
     return w
         
