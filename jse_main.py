@@ -165,8 +165,8 @@ def Compute_Zmatrix_cost(
 def getJSE_BSTAR(
     h, h_JSE
     ) -> list:
-    H = h
-    H[0] = h_JSE
+    H = np.array(h)
+    H[0] = np.array(h_JSE)
     return H
 
 
@@ -255,6 +255,31 @@ estVar_Epca = np.zeros((NumExperiments))  # estimated variance of the PCA portfo
 estVar_Ejse = np.zeros((NumExperiments))  # est variance of the GPS portfolio
 estVar_raw = np.zeros((NumExperiments))
 
+
+## 4 factor holders ##
+
+
+f_VFR_raw = np.zeros(NumExperiments)  # var forecast ratio
+f_VFR_Epca = np.zeros(NumExperiments)  # var forecast ratio
+f_VFR_Ejse = np.zeros(NumExperiments)  # var forecast ratio
+
+f_TrueVarR_Epca = np.zeros((NumExperiments))  # ratio of true min var to true var of est portfolio
+f_TrueVarR_Ejse = np.zeros((NumExperiments))
+f_TrueVarR_raw = np.zeros((NumExperiments))
+
+f_trerrorraw = np.zeros((NumExperiments))  # pca tracking error
+f_trerrorEpca = np.zeros(NumExperiments)  # pca tracking error
+f_trerrorEjse = np.zeros((NumExperiments))  # gps tracking error
+
+f_trueVar_Epca = np.zeros((NumExperiments))  # true variance of the PCA portfolio (min var with PCA cov estimate)
+f_trueVar_Ejse = np.zeros((NumExperiments))  # true variance of the GPS portfolio
+f_trueVar_raw = np.zeros((NumExperiments))
+f_trueVar_TT = np.zeros((NumExperiments))
+
+f_estVar_Epca = np.zeros((NumExperiments))  # estimated variance of the PCA portfolio (min var with PCA cov estimate)
+f_estVar_Ejse = np.zeros((NumExperiments))  # est variance of the GPS portfolio
+f_estVar_raw = np.zeros((NumExperiments))
+
 ###
 # main loop iterating trials
 
@@ -327,42 +352,106 @@ for exper in range(NumExperiments):
     # four portfolios
 
     
-
+    if FactorFlag == 0
     # tracking error, daily
 
-    TrackErr2_Epca = p_eta_true * ((np.dot(w_Epca - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Epca - w_TT)) ** 2)
+        TrackErr2_Epca = p_eta_true * ((np.dot(w_Epca - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Epca - w_TT)) ** 2)
 
-    TrackErr2_Ejse = p_eta_true * ((np.dot(w_Ejse - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Ejse - w_TT)) ** 2)
+        TrackErr2_Ejse = p_eta_true * ((np.dot(w_Ejse - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Ejse - w_TT)) ** 2)
 
-    TrackErr2_raw = p_eta_true * ((np.dot(w_raw - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_raw - w_TT)) ** 2)
+        TrackErr2_raw = p_eta_true * ((np.dot(w_raw - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_raw - w_TT)) ** 2)
 
-    # annualized, and reported as percent
+        # annualized, and reported as percent
 
-    trerrorEpca[exper] = np.sqrt(252 * TrackErr2_Epca) * 100
-    trerrorEjse[exper] = np.sqrt(252 * TrackErr2_Ejse) * 100
-    trerrorraw[exper] = np.sqrt(252 * TrackErr2_raw) * 100
+        trerrorEpca[exper] = np.sqrt(252 * TrackErr2_Epca) * 100
+        trerrorEjse[exper] = np.sqrt(252 * TrackErr2_Ejse) * 100
+        trerrorraw[exper] = np.sqrt(252 * TrackErr2_raw) * 100
 
-    # variance forecast ratios = estimated / true variances of the estimated portfolio
-    # see GPS and MAPS for these variance formulas
+        # variance forecast ratios = estimated / true variances of the estimated portfolio
+        # see GPS and MAPS for these variance formulas
 
-    trueVar_Epca[exper] = p_eta_true * ((np.dot(b, w_Epca)) ** 2) + delta2_true * np.dot(w_Epca, w_Epca)
-    trueVar_Ejse[exper] = p_eta_true * ((np.dot(b, w_Ejse)) ** 2) + delta2_true * np.dot(w_Ejse, w_Ejse)
-    trueVar_raw[exper] = p_eta_true * ((np.dot(b, w_raw)) ** 2) + delta2_true * np.dot(w_raw, w_raw)
-    trueVar_TT[exper] = p_eta_true * ((np.dot(b, w_TT)) ** 2) + delta2_true * np.dot(w_TT, w_TT)
+        trueVar_Epca[exper] = p_eta_true * ((np.dot(b, w_Epca)) ** 2) + delta2_true * np.dot(w_Epca, w_Epca)
+        trueVar_Ejse[exper] = p_eta_true * ((np.dot(b, w_Ejse)) ** 2) + delta2_true * np.dot(w_Ejse, w_Ejse)
+        trueVar_raw[exper] = p_eta_true * ((np.dot(b, w_raw)) ** 2) + delta2_true * np.dot(w_raw, w_raw)
+        trueVar_TT[exper] = p_eta_true * ((np.dot(b, w_TT)) ** 2) + delta2_true * np.dot(w_TT, w_TT)
 
-    estVar_Epca[exper] = p_eta_obs * ((np.dot(h, w_Epca)) ** 2) + delta2_obs * np.dot(w_Epca, w_Epca)
-    estVar_Ejse[exper] = p_eta_obs * ((np.dot(h_GPS, w_Ejse)) ** 2) + delta2_obs * np.dot(w_Ejse, w_Ejse)
-    estVar_raw[exper] = p_eta_raw * ((np.dot(h, w_raw)) ** 2) + delta2_raw * np.dot(w_raw, w_raw)
+        estVar_Epca[exper] = p_eta_obs * ((np.dot(h, w_Epca)) ** 2) + delta2_obs * np.dot(w_Epca, w_Epca)
+        estVar_Ejse[exper] = p_eta_obs * ((np.dot(h_GPS, w_Ejse)) ** 2) + delta2_obs * np.dot(w_Ejse, w_Ejse)
+        estVar_raw[exper] = p_eta_raw * ((np.dot(h, w_raw)) ** 2) + delta2_raw * np.dot(w_raw, w_raw)
 
-    VFR_Epca[exper] = estVar_Epca[exper] / trueVar_Epca[exper]
-    VFR_Ejse[exper] = estVar_Ejse[exper] / trueVar_Ejse[exper]
-    VFR_raw[exper] = estVar_raw[exper] / trueVar_raw[exper]
+        VFR_Epca[exper] = estVar_Epca[exper] / trueVar_Epca[exper]
+        VFR_Ejse[exper] = estVar_Ejse[exper] / trueVar_Ejse[exper]
+        VFR_raw[exper] = estVar_raw[exper] / trueVar_raw[exper]
 
-    # true variance ratios
+        # true variance ratios
 
-    TrueVarR_Epca[exper] = trueVar_TT[exper] / trueVar_Epca[exper]
-    TrueVarR_Ejse[exper] = trueVar_TT[exper] / trueVar_Ejse[exper]
-    TrueVarR_raw[exper] = trueVar_TT[exper] / trueVar_raw[exper]
+        TrueVarR_Epca[exper] = trueVar_TT[exper] / trueVar_Epca[exper]
+        TrueVarR_Ejse[exper] = trueVar_TT[exper] / trueVar_Ejse[exper]
+        TrueVarR_raw[exper] = trueVar_TT[exper] / trueVar_raw[exper]
+
+        TrackErr2_Epca = p_eta_true * ((np.dot(w_Epca - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Epca - w_TT)) ** 2)
+
+        TrackErr2_Ejse = p_eta_true * ((np.dot(w_Ejse - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Ejse - w_TT)) ** 2)
+
+        TrackErr2_raw = p_eta_true * ((np.dot(w_raw - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_raw - w_TT)) ** 2)
+
+    elif FactorFlag ==1:
+    # fOUR FACTOR 
+
+        # true sigma
+        Omega = np.diag(true_mvar) # we are given the real market variances
+        Delta = np.diag(true_svar) # we are given the real d2 or specific variances
+        true_sigma = np.dot(np.dot(np.array(true_bstar), Omega), np.array(true_bstar).T) + Delta
+        
+        # pca sigma
+        
+        Omega = np.diag(sigma2_mp) # we are given the real market variances
+        Delta = np.diag(d2_mp) # we are given the real d2 or specific variances
+        pca_sigma = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta
+
+        # raw sigma
+
+        Omega = np.diag(sigma2) # we are given the real market variances
+        Delta = np.diag(d2n) # we are given the real d2 or specific variances
+        raw_sigma = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta
+
+        # jse sigma
+
+        Omega = np.diag(sigma2_mp_jse) # we are given the real market variances
+        Delta = np.diag(d2_mp_jse) # we are given the real d2 or specific variances
+        jse_sigma = np.dot(np.dot(np.array(h_GPS).T, Omega), np.array(h_GPS)) + Delta
+
+        f_TrackErr2_Epca = np.dot(np.dot(np.array(w_TT - w_Epca).reshape(1,MaxAssets), true_sigma), np.array(w_TT - w_Epca))
+        f_TrackErr2_Ejse = np.dot(np.dot(np.array(w_TT - w_Ejse).reshape(1,MaxAssets), true_sigma), np.array(w_TT - w_Ejse))
+        f_TrackErr2_raw = np.dot(np.dot(np.array(w_TT - w_raw).reshape(1,MaxAssets), true_sigma), np.array(w_TT - w_raw))
+
+        f_trerrorEpca[exper] = np.sqrt(252 * f_TrackErr2_Epca) * 100
+        f_trerrorEjse[exper] = np.sqrt(252 * f_TrackErr2_Ejse) * 100
+        f_trerrorraw[exper] = np.sqrt(252 * f_TrackErr2_raw) * 100
+
+        # variance forecast ratios = estimated / true variances of the estimated portfolio
+        # see GPS and MAPS for these variance formulas
+
+        f_trueVar_Epca[exper] = p_eta_true * ((np.dot(b, w_Epca)) ** 2) + delta2_true * np.dot(w_Epca, w_Epca)
+        f_trueVar_Ejse[exper] = p_eta_true * ((np.dot(b, w_Ejse)) ** 2) + delta2_true * np.dot(w_Ejse, w_Ejse)
+        f_trueVar_raw[exper] = p_eta_true * ((np.dot(b, w_raw)) ** 2) + delta2_true * np.dot(w_raw, w_raw)
+        f_trueVar_TT[exper] = p_eta_true * ((np.dot(b, w_TT)) ** 2) + delta2_true * np.dot(w_TT, w_TT)
+
+        f_estVar_Epca[exper] = np.dot(np.array(w_Epca).reshape(1,MaxAssets), 
+        f_estVar_Ejse[exper] = 
+        f_estVar_raw[exper] = 
+
+        f_VFR_Epca[exper] = f_estVar_Epca[exper] / f_trueVar_Epca[exper]
+        f_VFR_Ejse[exper] = f_estVar_Ejse[exper] / f_trueVar_Ejse[exper]
+        f_VFR_raw[exper] = f_estVar_raw[exper] / f_trueVar_raw[exper]
+
+        # true variance ratios
+
+        f_TrueVarR_Epca[exper] = trueVar_TT[exper] / trueVar_Epca[exper]
+        f_TrueVarR_Ejse[exper] = trueVar_TT[exper] / trueVar_Ejse[exper]
+        f_TrueVarR_raw[exper] = trueVar_TT[exper] / trueVar_raw[exper]
+    else: 
+        print('something went wrong')
 
 # endfor exper
 
