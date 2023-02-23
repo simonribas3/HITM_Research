@@ -89,10 +89,15 @@ def ComputeMRPortfolio(
     h, **kwargs  # computes weights for one factor covariance matrix:
     ) -> list: 
     
-    sigma2 = kwargs['mvar']
-    d2 = kwargs['svar']
-    p_eta = kwargs['p_eta']
-    delta2 = kwargs['delta2']
+    try: 
+        try:
+            sigma2 = kwargs['mvar']
+        except:
+            sigma2_l = kwargs['mvar_l']
+    except:
+        d2 = kwargs['svar']
+        p_eta = kwargs['p_eta']
+        delta2 = kwargs['delta2']
 
     all_ones = np.ones(MaxAssets)
     
@@ -279,6 +284,7 @@ for exper in range(NumExperiments):
     
     elif FactorFlag == 1: 
         h, h_GPS, sp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
+        true_mvar = np.array([Factor1StDev**2, Factor2StDev**2, Factor3StDev**2, Factor4StDev**2])
         z = Z[:, :, exper]
         z = np.sum(z**2, axis = 1) # square and sum across time
         d2n = (1/NumPeriods)*z # this is the calculation for equation (21) in better betas
@@ -296,7 +302,7 @@ for exper in range(NumExperiments):
         
     # see the JS# paper for the raw PCA estimator
 
-    #  four portfolios
+    # four portfolios
 
     
 
