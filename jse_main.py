@@ -285,13 +285,18 @@ for exper in range(NumExperiments):
 
         w_TT = ComputeMRPortfolio(b, p_eta = p_eta_true, delta2 = delta2_true)  # true optimal portfolio
     
-    elif FactorFlag == 1: 
+    elif FactorFlag == 1: # four factor main loop implementation
+
+        ## retrieve principal components and define true values
         h, h_GPS, sp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
 
         h_GPS = getJSE_BSTAR(h, h_GPS)
         true_mvar = np.array([Factor1StDev**2, Factor2StDev**2, Factor3StDev**2, Factor4StDev**2])
-        true_svar = np.array([SpecificStDev**2]*4)
-        ## regular residuals
+        true_svar = np.array([SpecificStDev**2]*MaxAssets)
+        betaVector = betaVector.reshape((MaxAssets, 1))
+        true_bstar = np.concatenate([betaVector, exposures234], axis = 1)
+        
+        ## regular residuals ##
         z = Z[:, :, exper]
         z = np.sum(z**2, axis = 1) # square and sum across time
         d2n = (1/NumPeriods)*z # this is the calculation for equation (21) in better betas
@@ -299,7 +304,8 @@ for exper in range(NumExperiments):
         sigma2 = sp2[0] - d2n_avg # (23) bb
         d2_mp = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
         sigma2_mp = sp2[0] - d2_mp*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
-        ## jse residuals 
+        
+        ## jse residuals ##
         z_jse = Z_jse[:, :, exper]
         z_jse = np.sum(z_jse**2, axis = 1) # square and sum across time
         d2n_jse = (1/NumPeriods)*z_jse # this is the calculation for equation (21) in better betas
@@ -307,12 +313,13 @@ for exper in range(NumExperiments):
         sigma2_jse = sp2[0] - d2n_avg_jse # (23) bb
         d2_mp_jse = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
         sigma2_mp_jse = sp2[0] - d2_mp_jse*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
-        ## weights
+        
+        ## weights ##
         w_Epca = ComputeMRPortfolio(h, mvar = sigma2_mp, svar = d2_mp)  # weights 4 factor corrected market and specific variance
         w_Ejse = ComputeMRPortfolio(h_GPS, mvar = sigma2_mp_jse, svar = d2_mp_jse)  # weights 4 factor corrected beta vector and variances
         w_raw = ComputeMRPortfolio(h, mvar = sigma2, svar = d2n)  # weights 4 factor regular variance estimates as well as regular beta vector
 
-        w_TT = ComputeMRPortfolio(b, mvar_l = true_mvar, svar_l = true_svar)  # true optimal portfolio
+        w_TT = ComputeMRPortfolio(true_bstar.T, mvar_l = true_mvar, svar_l = true_svar)  # true optimal portfolio (make sure to transpose before putting in)
 
         
     # see the JS# paper for the raw PCA estimator
