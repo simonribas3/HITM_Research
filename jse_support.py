@@ -135,3 +135,7 @@ class SimulationJSE:
 
     def GetBetaVector(self):
         return self.betas
+
+    def GetExposure234(self):
+        return self.exposures234
+

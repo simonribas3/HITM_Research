@@ -229,6 +229,9 @@ if FactorFlag == 1:
 # get true betas -- one beta for all experiments
 betaVector = sim.GetBetaVector()
 
+# get true exposure (we try and estimate this with PCA)
+exposures234 = sim.GetExposure234()
+
 # set up arrays to hold results of metrics per trial
 
 VFR_raw = np.zeros(NumExperiments)  # var forecast ratio
