@@ -405,20 +405,20 @@ for exper in range(NumExperiments):
         
         # pca sigma
         
-        Omega = np.diag(sigma2_mp) # we are given the real market variances
-        Delta = np.diag(d2_mp) # we are given the real d2 or specific variances
+        Omega = sigma2_mp*np.diag([1]*4) # we are given the real market variances
+        Delta = d2_mp*np.diag([1]*MaxAssets) # we are given the real d2 or specific variances
         pca_sigma = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta
 
         # raw sigma
 
-        Omega = np.diag(sigma2) # we are given the real market variances
-        Delta = np.diag(d2n) # we are given the real d2 or specific variances
+        Omega = sigma2*np.diag([1]*4) # we are given the real market variances
+        Delta = d2n*np.diag([1]*MaxAssets) # we are given the real d2 or speci
         raw_sigma = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta
 
         # jse sigma
 
-        Omega = np.diag(sigma2_mp_jse) # we are given the real market variances
-        Delta = np.diag(d2_mp_jse) # we are given the real d2 or specific variances
+        Omega = sigma2_mp_jse*np.diag([1]*4) # we are given the real market variances
+        Delta = d2_mp_jse*np.diag([1]*MaxAssets) # we are given the real d2 or specis
         jse_sigma = np.dot(np.dot(np.array(h_GPS).T, Omega), np.array(h_GPS)) + Delta
 
         f_TrackErr2_Epca = np.dot(np.dot(np.array(w_TT - w_Epca).reshape(1,MaxAssets), true_sigma), np.array(w_TT - w_Epca))
@@ -429,27 +429,29 @@ for exper in range(NumExperiments):
         f_trerrorEjse[exper] = np.sqrt(252 * f_TrackErr2_Ejse) * 100
         f_trerrorraw[exper] = np.sqrt(252 * f_TrackErr2_raw) * 100
 
-        # variance forecast ratios = estimated / true variances of the estimated portfolio
-        # see GPS and MAPS for these variance formulas
+        ### variance forecast ratios = estimated / true variances of the estimated portfolio ###
 
-        f_trueVar_Epca[exper] = p_eta_true * ((np.dot(b, w_Epca)) ** 2) + delta2_true * np.dot(w_Epca, w_Epca)
-        f_trueVar_Ejse[exper] = p_eta_true * ((np.dot(b, w_Ejse)) ** 2) + delta2_true * np.dot(w_Ejse, w_Ejse)
-        f_trueVar_raw[exper] = p_eta_true * ((np.dot(b, w_raw)) ** 2) + delta2_true * np.dot(w_raw, w_raw)
-        f_trueVar_TT[exper] = p_eta_true * ((np.dot(b, w_TT)) ** 2) + delta2_true * np.dot(w_TT, w_TT)
+        # denominator using our estimates and true sigma
+        f_trueVar_Epca[exper] = np.dot(np.dot(w_Epca.reshape(1,MaxAssets), true_sigma), w_Epca.reshape(MaxAssets,1))
+        f_trueVar_Ejse[exper] = np.dot(np.dot(w_Ejse.reshape(1,MaxAssets), true_sigma), w_Ejse.reshape(MaxAssets,1))
+        f_trueVar_raw[exper] = np.dot(np.dot(w_raw.reshape(1,MaxAssets), true_sigma), w_raw.reshape(MaxAssets,1))
+        f_trueVar_TT[exper] = np.dot(np.dot(w_TT.reshape(1,MaxAssets), true_sigma), w_TT.reshape(MaxAssets,1))
 
-        f_estVar_Epca[exper] = np.dot(np.array(w_Epca).reshape(1,MaxAssets), 
-        f_estVar_Ejse[exper] = 
-        f_estVar_raw[exper] = 
+        # numerator using our estimates and estimated sigma
+        f_estVar_Epca[exper] = np.dot(np.dot(w_Epca.reshape(1,MaxAssets), pca_sigma), w_Epca.reshape(MaxAssets,1))
+        f_estVar_Ejse[exper] = np.dot(np.dot(w_Ejse.reshape(1,MaxAssets), jse_sigma), w_Ejse.reshape(MaxAssets,1))
+        f_estVar_raw[exper] = np.dot(np.dot(w_raw.reshape(1,MaxAssets), raw_sigma), w_raw.reshape(MaxAssets,1))
 
+        # numerator / denominator
         f_VFR_Epca[exper] = f_estVar_Epca[exper] / f_trueVar_Epca[exper]
         f_VFR_Ejse[exper] = f_estVar_Ejse[exper] / f_trueVar_Ejse[exper]
         f_VFR_raw[exper] = f_estVar_raw[exper] / f_trueVar_raw[exper]
 
         # true variance ratios
-
-        f_TrueVarR_Epca[exper] = trueVar_TT[exper] / trueVar_Epca[exper]
-        f_TrueVarR_Ejse[exper] = trueVar_TT[exper] / trueVar_Ejse[exper]
-        f_TrueVarR_raw[exper] = trueVar_TT[exper] / trueVar_raw[exper]
+        # true variance / estimated weights and true sigma
+        f_TrueVarR_Epca[exper] = f_trueVar_TT[exper] / f_trueVar_Epca[exper]
+        f_TrueVarR_Ejse[exper] = f_trueVar_TT[exper] / f_trueVar_Ejse[exper]
+        f_TrueVarR_raw[exper] = f_trueVar_TT[exper] / f_trueVar_raw[exper]
     else: 
         print('something went wrong')
 
