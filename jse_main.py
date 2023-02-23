@@ -87,40 +87,42 @@ def ComputePCA_GPS(S, Srank, Sdim):
 
 def ComputeMRPortfolio(
     h, **kwargs  # computes weights for one factor covariance matrix:
-    ) -> list: 
-    
-    try: 
-        try:
-            sigma2 = kwargs['mvar']
-        except:
-            sigma2_l = kwargs['mvar_l']
-    except:
-        d2 = kwargs['svar']
-        p_eta = kwargs['p_eta']
-        delta2 = kwargs['delta2']
+    ) -> list:
 
     all_ones = np.ones(MaxAssets)
     
-    if FactorFlag == 0:
-        # outputs w = argmin w^T Sigma w, subj to w^T e = 1.
-        # Here Sigma is the real or estimated covariance matrix, depending on inputs
-        # p = dimension of Sigma = number of assets
-        # p_eta, delta2, h determine Sigma = p_eta hh^T + delta2 I
-        # Notation follows MAPS, section 3
+    our_args = kwargs
 
+    try: 
+        try: # four factor model 
+            
+            d2 = kwargs['svar']
+            sigma2 = kwargs['mvar']
+            Omega = sigma2*np.diag([1]*4) # this creates Omega diagonal (17)
+            Delta = d2*np.diag([1]*MaxAssets) # this creates Delta diagonal in (17)
+            cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
+            w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
+            w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
+        
+        else: # true solution computation for four factor
+
+            d2 = kwargs['svar_l']
+            sigma2_l = kwargs['mvar_l']
+            Omega = np.diag(sigma2_l) # we are given the real market variances
+            Delta = np.diag(d2) # we are given the real d2 or specific variances
+            cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
+            w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
+            w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
+    
+    else: # 1 factor
+
+        p_eta = kwargs['p_eta']
+        delta2 = kwargs['delta2']
         q = all_ones / la.norm(all_ones)  # north pole, unit vector
         hq = np.dot(h, q) # hq is just the h vector in the direction of the north pole
         k2 = delta2 / p_eta
         rho = (1 + k2) / hq
         w = ((rho * q) - h) / ((rho - hq) * np.sqrt(p))
-
-    elif FactorFlag == 1:
-
-        Omega = sigma2*np.diag([1]*4) # this creates Omega diagonal (17)
-        Delta = d2*np.diag([1]*MaxAssets) # this creates Delta diagonal in (17)
-        cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
-        w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
-        w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
 
     return w
 
@@ -285,6 +287,8 @@ for exper in range(NumExperiments):
     elif FactorFlag == 1: 
         h, h_GPS, sp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
         true_mvar = np.array([Factor1StDev**2, Factor2StDev**2, Factor3StDev**2, Factor4StDev**2])
+        true_svar = np.array([SpecificStDev**2]*4)
+        ## regular residuals
         z = Z[:, :, exper]
         z = np.sum(z**2, axis = 1) # square and sum across time
         d2n = (1/NumPeriods)*z # this is the calculation for equation (21) in better betas
@@ -292,12 +296,20 @@ for exper in range(NumExperiments):
         sigma2 = sp2[0] - d2n_avg # (23) bb
         d2_mp = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
         sigma2_mp = sp2[0] - d2_mp*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
-        
+        ## jse residuals 
+        z_jse = Z[:, :, exper]
+        z_jse = np.sum(z**2, axis = 1) # square and sum across time
+        d2n_jse = (1/NumPeriods)*z_jse # this is the calculation for equation (21) in better betas
+        d2n_avg_jse = np.sum(d2n_jse)/len(d2n_jse) # (22) bb
+        sigma2_jse = sp2[0] - d2n_avg_jse # (23) bb
+        d2_mp_jse = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
+        sigma2_mp_jse = sp2[0] - d2_mp_jse*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
+        ## weights
         w_Epca = ComputeMRPortfolio(h, mvar = sigma2_mp, svar = d2_mp)  # weights 4 factor corrected market and specific variance
-        w_Ejse = ComputeMRPortfolio(h_GPS, mvar = sigma2_mp, svar = d2_mp)  # weights 4 factor corrected beta vector and variances
+        w_Ejse = ComputeMRPortfolio(h_GPS, mvar = sigma2_mp_jse, svar = d2_mp_jse)  # weights 4 factor corrected beta vector and variances
         w_raw = ComputeMRPortfolio(h, mvar = sigma2, svar = d2n)  # weights 4 factor regular variance estimates as well as regular beta vector
 
-        w_TT = ComputeMRPortfolio(p_eta_true, delta2_true, b)  # true optimal portfolio
+        w_TT = ComputeMRPortfolio(b, mvar_l = true_mvar, svar_l = true_svar)  # true optimal portfolio
 
         
     # see the JS# paper for the raw PCA estimator
