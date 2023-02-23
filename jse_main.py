@@ -86,19 +86,16 @@ def ComputePCA_GPS(S, Srank, Sdim):
 
 
 def ComputeMRPortfolio(
-    p, p_eta, delta2, h: list, sp2: list, **kwargs
-    ) -> list: # computes weights for one factor covariance matrix:
+    h, **kwargs  # computes weights for one factor covariance matrix:
+    ) -> list: 
     
+    sigma2 = kwargs['mvar']
+    d2 = kwargs['svar']
+    p_eta = kwargs['p_eta']
+    delta2 = kwargs['delta2']
 
-    all_ones = np.ones(p)
-
-    # Here we will first create the vector with delta_i's
-    # here
-    z2 = z**2 # square the matrix
-    z = np.sum(z2, axis=1) # sum of the squares
-    z = z/len(z2[0]) # divide by the total amount of days, since z2 is still n,t matrix just grab z[0] and divide by this length
+    all_ones = np.ones(MaxAssets)
     
-
     if FactorFlag == 0:
         # outputs w = argmin w^T Sigma w, subj to w^T e = 1.
         # Here Sigma is the real or estimated covariance matrix, depending on inputs
@@ -107,21 +104,20 @@ def ComputeMRPortfolio(
         # Notation follows MAPS, section 3
 
         q = all_ones / la.norm(all_ones)  # north pole, unit vector
-        hq = np.dot(h[0], q) # hq is just the h vector in the direction of the north pole
-
+        hq = np.dot(h, q) # hq is just the h vector in the direction of the north pole
         k2 = delta2 / p_eta
         rho = (1 + k2) / hq
-        w = ((rho * q) - h[0]) / ((rho - hq) * np.sqrt(p))
-        return w
-    elif FactorFlag == 1:
-        I = np.identity(len(h[0])) # sets up identity matrix
-        d2 = z          # need to regress on factors to get this
-        omega = sp2*I - d2 # sets up factor covariance matrix
-        sigma = np.dot(np.dot(h.T, omega), h) + d2 * I
-        w_num = np.dot(np.linalg.inv(sigma),all_ones)
-        w = w_num/np.dot(all_ones.T,w_num)
+        w = ((rho * q) - h) / ((rho - hq) * np.sqrt(p))
 
-        return w
+    elif FactorFlag == 1:
+
+        Omega = sigma2*np.diag([1]*4) # this creates Omega diagonal (17)
+        Delta = d2*np.diag([1]*MaxAssets) # this creates Delta diagonal in (17)
+        cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
+        w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
+        w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
+
+    return w
 
 
 
@@ -275,12 +271,11 @@ for exper in range(NumExperiments):
         delta2_raw = ((NumPeriods - 1) / (MaxAssets - 1)) * lp2 
         p_eta_raw = sp2 - delta2_raw
 
-        w_Epca = ComputeMRPortfolio(MaxAssets, p_eta_obs, delta2_obs, h)  # estimated evalues and PCA evector
-        w_Ejse = ComputeMRPortfolio(MaxAssets, p_eta_obs, delta2_obs, h_GPS)  # estimated evalues and GPS evector
+        w_Epca = ComputeMRPortfolio(h, p_eta = p_eta_obs, delta2 = delta2_obs)  # estimated evalues and PCA evector
+        w_Ejse = ComputeMRPortfolio(h_GPS, p_eta = p_eta_obs, delta2 = delta2_obs)  # estimated evalues and GPS evector
+        w_raw = ComputeMRPortfolio(h, p_eta = p_eta_raw, delta2 = delta2_raw)  # PCA evalue and evector
 
-        w_raw = ComputeMRPortfolio(MaxAssets, p_eta_raw, delta2_raw, h)  # PCA evalue and evector
-
-        w_TT = ComputeMRPortfolio(MaxAssets, p_eta_true, delta2_true, b)  # true optimal portfolio
+        w_TT = ComputeMRPortfolio(b, p_eta = p_eta_true, delta2 = delta2_true)  # true optimal portfolio
     
     elif FactorFlag == 1: 
         h, h_GPS, sp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
@@ -289,11 +284,14 @@ for exper in range(NumExperiments):
         d2n = (1/NumPeriods)*z # this is the calculation for equation (21) in better betas
         d2n_avg = np.sum(d2n)/len(d2n) # (22) bb
         sigma2 = sp2[0] - d2n_avg # (23) bb
-
         d2_mp = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
         sigma2_mp = sp2[0] - d2_mp*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
+        
+        w_Epca = ComputeMRPortfolio(h, mvar = sigma2_mp, svar = d2_mp)  # weights 4 factor corrected market and specific variance
+        w_Ejse = ComputeMRPortfolio(h_GPS, mvar = sigma2_mp, svar = d2_mp)  # weights 4 factor corrected beta vector and variances
+        w_raw = ComputeMRPortfolio(h, mvar = sigma2, svar = d2n)  # weights 4 factor regular variance estimates as well as regular beta vector
 
-
+        w_TT = ComputeMRPortfolio(p_eta_true, delta2_true, b)  # true optimal portfolio
 
         
     # see the JS# paper for the raw PCA estimator
