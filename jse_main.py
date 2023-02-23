@@ -193,11 +193,11 @@ def Compute_Zmatrix( # Function returns the JSE and PCA residuals matrix (keep a
         for j in range(NumPeriods):
             R_day = R_exper[:, j]
 
-            psi_day = minimize(Compute_Zmatrix_cost,initialGuess,method = 'nelder-mead',       #optimizer PCA
+            psi_day = minimize(Compute_Zmatrix_cost,initialGuess,method = 'CG',       # Optimizer PCA Conjugate Gradient 
             args =(Bstar,np.reshape(R_day, (MaxAssets,))),
             options = {'maxiter':10000, 'maxfev':10000, 'xatol': 1e-8, 'disp': True})
 
-            psi_day_jse = minimize(Compute_Zmatrix_cost,initialGuess,method = 'nelder-mead',    #optimizer JSE
+            psi_day_jse = minimize(Compute_Zmatrix_cost,initialGuess,method = 'CG',    # Optimizer JSE Conjugate Gradient
             args =(Bstar_JSE,np.reshape(R_day, (MaxAssets,))),
             options = {'maxiter':10000, 'maxfev':10000, 'xatol': 1e-8, 'disp': True})
 
