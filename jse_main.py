@@ -352,7 +352,7 @@ for exper in range(NumExperiments):
     # four portfolios
 
     
-    if FactorFlag == 0
+    if FactorFlag == 0:
     # tracking error, daily
 
         TrackErr2_Epca = p_eta_true * ((np.dot(w_Epca - w_TT, b)) ** 2) + delta2_true * ((la.norm(w_Epca - w_TT)) ** 2)
