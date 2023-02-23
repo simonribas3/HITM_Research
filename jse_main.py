@@ -84,38 +84,34 @@ def ComputePCA_GPS(S, Srank, Sdim):
 
 ###  end def
 
-
 def ComputeMRPortfolio(
     h, **kwargs  # computes weights for one factor covariance matrix:
     ) -> list:
-
-    all_ones = np.ones(MaxAssets)
     
     our_args = kwargs
-
-    try: 
-        try: # four factor model 
-            
-            d2 = kwargs['svar']
-            sigma2 = kwargs['mvar']
-            Omega = sigma2*np.diag([1]*4) # this creates Omega diagonal (17)
-            Delta = d2*np.diag([1]*MaxAssets) # this creates Delta diagonal in (17)
-            cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
-            w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
-            w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
+    all_ones = np.ones(MaxAssets)
+    if 'svar' in our_args:
         
-        else: # true solution computation for four factor
-
-            d2 = kwargs['svar_l']
-            sigma2_l = kwargs['mvar_l']
-            Omega = np.diag(sigma2_l) # we are given the real market variances
-            Delta = np.diag(d2) # we are given the real d2 or specific variances
-            cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
-            w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
-            w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
+        d2 = kwargs['svar']
+        sigma2 = kwargs['mvar']
+        Omega = sigma2*np.diag([1]*4) # this creates Omega diagonal (17)
+        Delta = d2*np.diag([1]*MaxAssets) # this creates Delta diagonal in (17)
+        cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
+        w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
+        w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
     
-    else: # 1 factor
-
+    elif 'svar_l' in our_args:
+        
+        d2 = kwargs['svar_l']
+        sigma2_l = kwargs['mvar_l']
+        Omega = np.diag(sigma2_l) # we are given the real market variances
+        Delta = np.diag(d2) # we are given the real d2 or specific variances
+        cov_est = np.dot(np.dot(np.array(h).T, Omega), np.array(h)) + Delta # this is (17)
+        w_num = np.dot(np.linalg.inv(cov_est),all_ones) # numerator of solving for w
+        w = w_num/np.dot(all_ones.T,w_num) # final computation solving for w
+        
+    else: 
+        
         p_eta = kwargs['p_eta']
         delta2 = kwargs['delta2']
         q = all_ones / la.norm(all_ones)  # north pole, unit vector
@@ -123,8 +119,10 @@ def ComputeMRPortfolio(
         k2 = delta2 / p_eta
         rho = (1 + k2) / hq
         w = ((rho * q) - h) / ((rho - hq) * np.sqrt(p))
-
+    
     return w
+        
+        
 
 
 
@@ -184,7 +182,7 @@ def Compute_Zmatrix( # Function returns the JSE and PCA residuals matrix (keep a
     for t in range(NumExperiments): # Looping through all the experiments
         R_exper = Returns[:, :, t] 
         S = np.matmul(R_exper, R_exper.transpose()) / NumPeriods  # Create the Sample covariance matrix for experiment i
-        h, h_JSE, sp2 = ComputePCA_GPS(S, NumPeriods, len(S), 1)
+        h, h_JSE, sp2 = ComputePCA_GPS(S, NumPeriods, len(S))
 
         Bstar = np.array(h).T  # This is the BSTAR in better betas, factor exposures
         Bstar_JSE = np.array(getJSE_BSTAR(h,h_JSE)).T  # This is the BSTAR for JSE
@@ -286,6 +284,8 @@ for exper in range(NumExperiments):
     
     elif FactorFlag == 1: 
         h, h_GPS, sp2 = ComputePCA_GPS(S, NumPeriods, MaxAssets)  # defined above
+
+        h_GPS = getJSE_BSTAR(h, h_GPS)
         true_mvar = np.array([Factor1StDev**2, Factor2StDev**2, Factor3StDev**2, Factor4StDev**2])
         true_svar = np.array([SpecificStDev**2]*4)
         ## regular residuals
@@ -297,8 +297,8 @@ for exper in range(NumExperiments):
         d2_mp = (np.trace(S) - np.sum(sp2))/(MaxAssets - 4*(1 - MaxAssets/NumPeriods)) # Marchenko-Pastur correction
         sigma2_mp = sp2[0] - d2_mp*(1 + MaxAssets/NumPeriods) # Marchenko-Pastur correction for market variance
         ## jse residuals 
-        z_jse = Z[:, :, exper]
-        z_jse = np.sum(z**2, axis = 1) # square and sum across time
+        z_jse = Z_jse[:, :, exper]
+        z_jse = np.sum(z_jse**2, axis = 1) # square and sum across time
         d2n_jse = (1/NumPeriods)*z_jse # this is the calculation for equation (21) in better betas
         d2n_avg_jse = np.sum(d2n_jse)/len(d2n_jse) # (22) bb
         sigma2_jse = sp2[0] - d2n_avg_jse # (23) bb
