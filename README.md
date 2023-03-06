@@ -7,4 +7,4 @@
 `JSE_main` is the program that executes simulations and plots
 
 **DATA:**  
-`hitm_500.xlsx` is the excel file where we import SP500 stock names
+`hitm_sp500.xlsx` is the excel file where we import SP500 stock names
