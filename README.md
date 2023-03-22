@@ -8,3 +8,5 @@
 
 **DATA:**  
 `hitm_sp500.xlsx` is the excel file where we import SP500 stock names
+
+checkout the fourfactor branch for the fourfactor sim
