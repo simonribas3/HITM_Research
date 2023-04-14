@@ -9,4 +9,5 @@ files:
 `JSE_support` is the class that generates one/four factor returns
 
 `JSE_main` is the program that executes simulations and plots
-  - working on getting the program to construct a four factor covariance matrix
+
+pls note, charts used in the four factor model where produced from `JSE_IS_OS_OBT` file
