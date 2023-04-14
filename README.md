@@ -10,4 +10,4 @@ files:
 
 `JSE_main` is the program that executes simulations and plots
 
-pls note, charts used in the four factor model where produced from `JSE_IS_OS_OBT` file
+pls note, charts used in the four factor model were produced from `JSE_IS_OS_OBT` file
